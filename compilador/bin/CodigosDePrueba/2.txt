@@ -1,0 +1,12 @@
+prog_if
+begin
+    single x;
+    x := 1.5;
+
+    if (x > 1.0) then
+        x := x * 2;
+    else begin
+        x := 0;
+    end
+    end_if;
+end

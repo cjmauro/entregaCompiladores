@@ -1,0 +1,9 @@
+prog_for_up
+begin
+    integer i;
+    for (i := 1; i < 10; up 1)
+    begin
+        outf([En el for, i = ]);
+        outf(i);
+    end;
+end

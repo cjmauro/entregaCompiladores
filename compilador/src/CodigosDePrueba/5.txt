@@ -1,0 +1,13 @@
+prog_pair
+begin
+    typedef pair <integer> pint;
+    ##pint p1, p2;
+
+    p1{1} := 5;
+    p1{2} := 10;
+    
+    p2 := p1;
+
+    integer x;
+    x := p2{1};
+end

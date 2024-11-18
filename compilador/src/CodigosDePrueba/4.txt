@@ -1,0 +1,11 @@
+prog_for_cond
+begin
+    integer j, a;
+    a := 6;
+
+    for (j := 1; j < 10; up 2; (a > 5))
+    begin
+        outf([Dentro del for]);
+        a := a + j;
+    end;
+end

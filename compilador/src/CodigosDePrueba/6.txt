@@ -1,0 +1,126 @@
+prog_mega
+begin
+    ## Declaraciones de variables
+    integer a, b, c;
+    octal ua, ub;
+    single s1, s2;
+    double d1, d2;
+    
+    typedef pair <integer> pint;
+    pint p1, p2
+
+    ## Inicializaciones
+    a := 32767; ## Límite máximo de integer
+    b := 100;
+    ua := 0;
+    s1 := 1.234;
+    d1 := 5.6789;
+
+    ## Asignación a elementos de un par
+    p1{1} := 8;
+    p1{2} := 16;
+    p2 := p1; ## Copia de par
+    
+    ## Operaciones con componentes del par
+    integer x;
+    x := p2{1} + a; ## Uso de par y variable integer
+
+    ## Función suma
+    integer fun suma(integer x, integer y)
+    begin
+        integer res;
+        res := x + y;
+        ret(res);
+    end
+
+    ## Función multiplicar pares
+    pint fun mult_pair(pint p)
+    begin
+        pint result;
+        result{1} := p{1} * 2;
+        result{2} := p{2} * 2;
+        ret(result);
+    end
+
+    ## Uso de la función suma
+    c := suma(a, b);
+    
+    ## Condición IF
+    if (c > 200) then
+        c := c - 100;
+    else
+        c := c + 100;
+    end_if;
+
+    ## Estructura FOR con condicional
+    for (i := 1; i <= 10; up 1; (a > 100))
+    begin
+        outf([Dentro del FOR i = ]);
+        outf(i);
+        a := a - i;
+    end;
+
+    ## Ciclo FOR decreciente
+    for (j := 10; j > 0; down 2)
+    begin
+        outf([En el FOR decreciente, j = ]);
+        outf(j);
+    end;
+
+    ## Función con salida
+    single fun calcular_area(single radio)
+    begin
+        single area;
+        area := 3.14159 * radio * radio;
+        ret(area);
+    end
+
+    ## Invocación de función en una expresión
+    s2 := calcular_area(5.0);
+
+    
+    integer z;
+    z := suma(5, 10);
+    z := z * 2;
+    if (z > 20) then
+        outf([Z es mayor que 20]);
+    else
+        outf([Z es menor o igual a 20]);
+    end_if;
+    
+
+    ## Otro FOR anidado
+    for (i := 1; i < 5; up 1)
+    begin
+        for (j := 1; j < 3; up 1)
+        begin
+            outf([For anidado i = ]);
+            outf(i);
+            outf([, j = ]);
+            outf(j);
+        end;
+    end;
+
+    ## Uso de la función mult_pair
+    pint p3;
+    p3 := mult_pair(p1);
+
+    ## Mostrar valores de p3
+    outf([p3{1} = ]);
+    outf(p3{1});
+    outf([p3{2} = ]);
+    outf(p3{2});
+
+    integer fun retorno(integer x)
+    begin
+        x := x + 10;
+        ret(x);
+    end
+
+    retorno(5);
+
+    ## Error de constante fuera de rango
+    integer fuera_de_rango;
+    fuera_de_rango := 40000; ## Error: fuera de rango permitido para integer
+
+end
