@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import javax.xml.crypto.Data;
-
 public class GeneradorDeCodigo {
     private static Parser parser;
     private static final Set<String> ARITHMETIC_OPERATORS = Set.of("+", "-", "*", "/");
@@ -140,20 +138,31 @@ public class GeneradorDeCodigo {
                            push_registro_pila(token);
                         }
                         if(saltos.contains(i)){
-                            instrucciones.add("Label" + Integer.toString(i) + ":");
+                            if (entry.getValue().get(i+1).equals("bi") && Integer.parseInt(entry.getValue().get(i)) < entry.getValue().size()) {
+                                saltos.add(i+1);
+                            }else{
+                                if(entry.getValue().get(i).equals("bi")){
+                                    instrucciones.add("Label" + Integer.toString(i-1) + ":");
+                                }else{
+            
+                                    instrucciones.add("Label" + Integer.toString(i) + ":");
+                                }
+                            }
                         }
 
                     }
                 }
                 num_polaca = 0;
             }
+            registroPila = new Stack<>();
         }
 
         List<String> polaca = parser.getPolaca().get(parser.get_nombre_start());
         instrucciones.add("start:");
         List<Integer> saltos = parser.getSaltos(parser.get_nombre_start());
-        for (int i = 0; i < polaca.size(); i++) { 
-            String token = polaca.get(i);   
+        for (int i = 0; i < polaca.size(); i++) {
+
+            String token = polaca.get(i);  
             if(token.equals("=" ) || token.equals("ASSING")){
                 generarCodigoAsignacion();
             }else if(token.equals("CALL")){
@@ -180,11 +189,12 @@ public class GeneradorDeCodigo {
                 generarCodigoImpresion(token);
 
             }else{
-               push_registro_pila(token);
+
+                push_registro_pila(token);
             }
 
             if(saltos.contains(i)){
-                if (polaca.get(i+1).equals("bi")) {
+                if (polaca.get(i+1).equals("bi") && Integer.parseInt(polaca.get(i)) < polaca.size()) {
                     saltos.add(i+1);
                 }else{
                     if(polaca.get(i).equals("bi")){
@@ -215,11 +225,7 @@ public class GeneradorDeCodigo {
 
 
     public void imprimirInstrucciones(){
-
-        
         StringBuilder asmContent = new StringBuilder();
-
-
         for (String declaracion : declaraciones) {
             asmContent.append(declaracion).append("\n");
         }
@@ -272,10 +278,8 @@ public class GeneradorDeCodigo {
         if(tablaSimbolos.get(reg) != null){
             if(tablaSimbolos.get(reg).getTipo().equals("single")){
                 reg = reg + "_single";
-                registro = registro + "_single";
             }else if(tablaSimbolos.get(reg).getTipo().equals("ulongint")){
                 reg = reg + "_ulongint";
-                registro = registro + "_ulongint";
             }
         }
 
@@ -285,8 +289,13 @@ public class GeneradorDeCodigo {
                 return;
             }
         }
-
-        if(data.get(registro) != null || float_values.get(reg) != null){
+        if(es_registro(registro)){
+            agregar_instruccion("Mov aux_ulongint, " + registro);
+            agregar_instruccion("printf(\"%u\\n\", aux_ulongint)");
+        }else if(registro.equals("FLAG_fstp")){
+            agregar_instruccion("fstp result");
+            agregar_instruccion("printf(\"%f\\n\", result)");
+        }else if(data.get(registro) != null || float_values.get(reg) != null){
             if(float_values.get(reg) != null || data.get(registro).getType().equals("REAL8") ){
                 agregar_instruccion("printf(\"%f\\n\", " + registro + ")"); 
             }else{
@@ -300,17 +309,14 @@ public class GeneradorDeCodigo {
         String registro2 = recuperar_registro();
         String reg1 = registroPila.peek();
         String registro1 = recuperar_registro();
-
         Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
 
         if(!reg1.contains("_ulongint") && !reg1.contains("_single")) {
             if(tablaSimbolos.get(reg1) != null){
                 if(tablaSimbolos.get(reg1).getTipo().equals("single")){
                     reg1 = reg1 + "_single";
-                    registro1 = registro1 + "_single";
                 }else if(tablaSimbolos.get(reg1).getTipo().equals("ulongint")){
                     reg1 = reg1 + "_ulongint";
-                    registro1 = registro1 + "_ulongint";
                 }
             }
         }
@@ -377,7 +383,6 @@ public class GeneradorDeCodigo {
     public static String devolverTipo(String reg){
         Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
         
-
         String cadena = reg;
         while (cadena.contains(":")) { 
             if(tablaSimbolos.get(cadena) != null){
@@ -393,6 +398,21 @@ public class GeneradorDeCodigo {
             return tablaSimbolos.get(tiporaiz).getTipo();
         }
 
+        if(reg.matches("\\d+")){
+            return "DWORD";
+        }else if(reg.matches("\\d+\\.\\d+")){
+            return "single";
+        }
+
+
+        if(es_registro(reg)){
+            return "DWORD";
+        }
+
+        if(reg.equals("result")){
+            return "single";
+        }
+
 
         if(data.get(reg) != null){
             return data.get(reg).getType();
@@ -403,7 +423,6 @@ public class GeneradorDeCodigo {
     }
 
     public static void push_registro_pila(String variable){
-        try{
             String adicional = "";
             if(variable.contains("|POSITION")){
                 adicional = variable.split("\\|")[1];
@@ -421,7 +440,7 @@ public class GeneradorDeCodigo {
             }
             
             if (variable.contains(":")) {
-                
+
                 String token = variable.split(":")[0];
                 Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
 
@@ -438,7 +457,15 @@ public class GeneradorDeCodigo {
                         cargar_data(token, new DataObject(token, "DWORD", "?"), variable);
                     }
                     else{
-                        String tipo = tablaSimbolos.get(tablaSimbolos.get(token).getTipo()).getTipo();
+                        String tipo = "";
+                        if(tablaSimbolos.get(token) != null){
+                            tablaSimbolos.get(token).getTipo();
+                            if(tablaSimbolos.get(tablaSimbolos.get(token).getTipo()) != null && tablaSimbolos.get(tablaSimbolos.get(token).getTipo()).getTipo() != null){
+                               tipo = tablaSimbolos.get(tablaSimbolos.get(token).getTipo()).getTipo();
+                            }
+                        } 
+
+
                         if(tipo.equals("ulongint")){
                             tipo = "DWORD";
                             token = token + "_ulongint";
@@ -446,11 +473,11 @@ public class GeneradorDeCodigo {
                             tipo = "REAL8";
                             token = token + "_single";
                         }
-                        cargar_data(token + adicional, new DataObject(token + adicional, tipo , "?"), variable);
+                        if (tipo != "")
+                            cargar_data(token + adicional, new DataObject(token + adicional, tipo , "?"), variable);
                     }
                     
                 }
-
 
                 String tipo = "";
                 if(tablaSimbolos.get(variable) != null){
@@ -461,15 +488,12 @@ public class GeneradorDeCodigo {
                     }
                 }
 
-
                 registroPila.push(token+ tipo + adicional);
             }else{
                 registroPila.push(variable + adicional);
-
             }
-        } catch (Exception  e) {
-            errores.add("Error: Ocurrio un error inesperado, revise la sintaxis del codigo");
-        }
+            
+
     }
 
     public static void generarRetorno(String token, String nombreFuncion){
@@ -479,7 +503,7 @@ public class GeneradorDeCodigo {
         if(tf != null){
             if(tf.getRetorno().equals("single")){
                 String registro = recuperar_registro();
-
+                
                 if(!registro.equals("FLAG_fstp")){
 
                     if(tf.getParametro().getTipo().equals("single")){
@@ -494,7 +518,7 @@ public class GeneradorDeCodigo {
                 
             }else{
                 String registro = recuperar_registro();
-
+                
                 if(registro.equals("FLAG_fstp")){
                     agregar_instruccion("FSTP result");
                 }else{
@@ -531,52 +555,28 @@ public class GeneradorDeCodigo {
         String operando1 = registroPila.pop();
 
         Integer i = Integer.parseInt(operando1);
-        if (i > num_polaca) {
-            if (token.equals("bf") ) {
-                agregar_instruccion(comparadorTemporal + " Label" + operando1);
-                saltosPila.put(operando1,"Label" + operando1); 
-            }else if(token.equals("bi")){
+        
+        if (token.equals("bf") ) {
+            agregar_instruccion(comparadorTemporal + " Label" + operando1);
+        }else if(token.equals("bi")){
+
+            if (instrucciones.get(instrucciones.size()-1 ).contains("Label")) {
+                if (i > num_polaca) {
+                    instrucciones.add(instrucciones.size() - 1, "\tJMP " + "Label" + operando1);
+                }else{
+                    agregar_instruccion("JMP " + "Label" + operando1);
+                }
+            }else{
                 agregar_instruccion("JMP " + "Label" + operando1);
-                saltosPila.put(operando1, "Label" + operando1);
             }
-        }else{ // for
-
-            if (token.equals("bf") ) {
-                agregar_instruccion(comparadorTemporal + " Label" + operando1);
-                saltosPila.put(operando1,"Label" + operando1); 
-            }else if(token.equals("bi")){
-                agregar_instruccion("JMP " + "Label" + operando1);
-                saltosPila.put(operando1, "Label" + operando1);
-            }
-        }
-    }
-
-    private static void agregarEtiquetaInicio(Integer i) {
-        for (int j = instrucciones.size() - 1; j >= 0; j--) {
-            if (instrucciones.get(j).trim().startsWith("MOV i, EAX") &&
-                j + 1 < instrucciones.size() &&
-                instrucciones.get(j + 1).trim().startsWith("CMP i,")) {
-
-                System.out.println("Encontrado inicio de for, agregando etiqueta");
-                String etiqueta = "LabelInicio" + i;
-                instrucciones.add(j + 1, etiqueta + ":");
-                break;
-            }
-        }
-    }
-    
-    private static void generarSaltoIncondicional() {
-        for (int j = instrucciones.size() - 1; j >= 0; j--) {
-            if (instrucciones.get(j).trim().startsWith("LabelInicio")) {
-                String etiqueta = instrucciones.get(j).trim().replace(":", "");
-                agregar_instruccion("JMP " + etiqueta);
-                break;
-            }
+            saltosPila.put(operando1, "Label" + operando1);
         }
     }
 
     public static String recuperar_registro(){
+
         String reg = registroPila.pop();
+
         if(reg.contains(".")){
             if(float_values.get(reg) != null){
                 reg = float_values.get(reg);
@@ -585,25 +585,33 @@ public class GeneradorDeCodigo {
                 reg = "FLOAT" + (float_values.size() - 1);
             }
         }
+
+        Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
+        if(tablaSimbolos.get(reg) != null){
+            String tipo = tablaSimbolos.get(reg).getTipo();
+            if(tipo.equals("ulongint")){
+                reg = reg + "_ulongint";
+            }else if(tipo.equals("single")){
+                reg = reg + "_single";
+            }
+        }
+
         return reg;
     }
 
-    public static void insertar_label(int i, String token, List<String> polaca){
-       String a = polaca.get(i);
-    }
 
     public static void generarCodigoComparacion(String token){
-        String reg2 = registroPila.peek();
-        String registro2 = recuperar_registro();
         String reg1 = registroPila.peek();
+        String registro2 = recuperar_registro();
+        String reg2 = registroPila.peek();
         String registro1 = recuperar_registro();
 
         Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
-
-        if(devolverTipo(reg1).equals("single") || devolverTipo(reg2).equals("single") || registro1.contains("_single") || registro2.contains("_single")){
+        if(devolverTipo(registro1).equals("single") || devolverTipo(registro2).equals("single") || registro1.contains("_single") || registro2.contains("_single")||
+        devolverTipo(reg1).equals("single") || devolverTipo(reg2).equals("single")){
 
             agregar_instruccion("FINIT");
-            if(devolverTipo(reg1).equals("ulongint") || reg1.matches("\\d+")){
+            if(devolverTipo(registro1).equals("ulongint") || registro1.matches("\\d+")){
                 agregar_instruccion("MOV EDX, " + registro1);
                 agregar_instruccion("MOV AUX_ulongint, EDX");
                 agregar_instruccion("FILD AUX_ulongint");
@@ -611,7 +619,7 @@ public class GeneradorDeCodigo {
                 agregar_instruccion("FLD " + registro1);
 
             }
-            if(devolverTipo(reg2).equals("ulongint") || reg2.matches("\\d+")){
+            if(devolverTipo(registro2).equals("ulongint") || registro2.matches("\\d+")){
                 agregar_instruccion("MOV EDX, " + registro2);
                 agregar_instruccion("MOV AUX_ulongint, EDX");
                 agregar_instruccion("FILD AUX_ulongint");
@@ -623,21 +631,21 @@ public class GeneradorDeCodigo {
             agregar_instruccion("SAHF");
 
         }else{
-            agregar_instruccion("MOV EAX, " + registro1);
-            agregar_instruccion("CMP EAX, " + registro2);
+            agregar_instruccion("MOV EAX, " + registro2 );
+            agregar_instruccion("CMP EAX, " + registro1);
         }
-        switch (token) {//quedaron al reves por como se carga el mov
+        switch (token) {
             case ">=":
-                comparadorTemporal =  "JLE";
+                comparadorTemporal =  "JGE";
                 break;
             case ">":
-                comparadorTemporal = "JL";
+                comparadorTemporal = "JG"; 
                 break;
             case "<=":
-                comparadorTemporal = "JGE";
+                comparadorTemporal = "JLE";
                 break;
             case "<":
-                comparadorTemporal = "JG"; 
+                comparadorTemporal = "JL";
                 break;
             case "==":
                 comparadorTemporal = "JE";
@@ -651,6 +659,11 @@ public class GeneradorDeCodigo {
     private static boolean esOperador(String token) {
         return ARITHMETIC_OPERATORS.contains(token);
     }
+
+    public static boolean es_registro(String registro){
+        return registro.equals("EBX") || registro.equals("EAX") || registro.equals("ECX") || registro.equals("EDX");
+    }
+
 
     public static String validar_tipo(String registro, String reg){
         String tipo = "";
@@ -666,6 +679,11 @@ public class GeneradorDeCodigo {
 
         if(reg.equals("EBX") || reg.equals("EAX") || reg.equals("ECX") || reg.equals("EDX")){
             tipo = "DWORD";
+        }
+
+        if(registro == "FLAG_fstp"){
+            tipo = "REAL8";
+            return tipo;
         }
 
         if (tipo.equals(""))
@@ -686,124 +704,94 @@ public class GeneradorDeCodigo {
         String registro2 = recuperar_registro();
         String reg1 = registroPila.peek();
         String registro1 = recuperar_registro();
-    
-        if (operador.equals("/")) {
-            agregar_instruccion("CMP " + registro2 + ", 0");
-            agregar_instruccion("JE DIVIDE_BY_ZERO");
-        }
-            
-        String tipo1 = "";
-        String tipo2 = "";
-        if (data.get(registro1) == null || data.get(registro2) == null) {
-            for(Map.Entry<String, DataObject> entry : data.entrySet()) {
-                if (entry.getValue().getSubdata().size() > 0) {
-                    for (DataObject subdata : entry.getValue().getSubdata()) {
-                        String[] partes1 = registro1.split("\\.");
-                        String[] partes2 = registro2.split("\\.");
+        Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
 
-                        if (partes1.length > 1 && subdata.getName().equals(partes1[1])) {
-                            tipo1 = subdata.getType();
-                            break;
-                        }else if (partes2.length > 1 && entry.getKey().equals(partes2[1])) {
-                            tipo2 = subdata.getType();
-                            break;
-                        }
-                    }
-                }
+        String tipo1 = validar_tipo(registro1, reg1);
+        String tipo2 = validar_tipo(registro2, reg2);
+
+        if((tipo2.equals("DWORD")|| tipo2.equals("ULONGINT")) && (tipo1.equals("DWORD") || tipo1.equals("ULONGINT"))){
+            String registrobase = "EBX";
+            if (registro2.equals("EBX")){
+                registrobase = "EDX";
+
             }
-        }
-
-        if (tipo2.equals("")){
-            tipo2 = validar_tipo(registro2, reg2);
-        }
-
-        if (tipo1.equals("")){
-            tipo1 = validar_tipo(registro1, reg1);
-        }
-
-
-        //conversiones implicitas
-        if(tipo2.equals("REAL8") || tipo1.equals("REAL8")){
-
-            if (registro1.matches("\\d+")) {
-                if(float_values.get(reg1) != null){
-                    registro1 = float_values.get(reg1);
-                }else{
-                    float_values.put(reg1, "ulongint" + float_values.size());
-                    registro1 = "ulongint" + (float_values.size() - 1);
-                }
-            }      
-
-            if (registro2.matches("\\d+")) {
-                if(float_values.get(reg2) != null){
-                    registro2 = float_values.get(reg2);
-                }else{
-                    float_values.put(reg2, "ulongint" + float_values.size());
-                    registro2 = "ulongint" + (float_values.size() - 1);
-                }
-            }
-
-            
-            if(tipo2.equals("ulongint")){
-                String tempRegistro = registro1;
-                registro1 = registro2;
-                registro2 = tempRegistro;
-            
-                String tempReg = reg1;
-                reg1 = reg2;
-                reg2 = tempReg;
-            }
-
-            agregar_instruccion("FILD " + registro1);
-
-            switch (operador) {
-                case "+":
-                    agregar_instruccion("FADD " + registro2);
-                    break;
-                case "-":
-                    agregar_instruccion("FSUB " + registro2);
-                    break;
-                case "*":
-                    agregar_instruccion("FMUL " + registro2);
-                    break;
-                case "/":
-                    agregar_instruccion("FDIV " + registro2);
-                    
-                    break;
-                default:
-                    throw new IllegalArgumentException("Operador aritmético no soportado: " + operador);
-            }
-               registroPila.push("FLAG_fstp");
-
-        }else{
-            agregar_instruccion("MOV EBX, " + registro1);
+            agregar_instruccion("MOV " + registrobase  +", " + registro1);
          
             switch (operador) {
                 case "+":
-                    agregar_instruccion("ADD EBX, " + registro2);
-                    registroPila.push("EBX");
+                    agregar_instruccion("ADD " + registrobase  +", " + registro2);
+                    registroPila.push(registrobase);
                     break;
                 case "-":
-                    agregar_instruccion("SUB EBX, " + registro2);
-                    registroPila.push("EBX");
+                    agregar_instruccion("SUB " + registrobase  +", " + registro2);
+                    registroPila.push(registrobase);
                     agregar_instruccion("JC UnderflowDetected");
                     break;
                 case "*":
-                    agregar_instruccion("IMUL EBX, " + registro2);
-                    registroPila.push("EBX");
+                    agregar_instruccion("IMUL " + registrobase  +", " +registro2);
+                    registroPila.push(registrobase);
                     agregar_instruccion("JO OverflowDetected");
                     break;
                 case "/":
-                    agregar_instruccion("IDIV " + registro2);
-                    registroPila.push("EBX");
-
+                    agregar_instruccion("IDIV " + registrobase  +", " +registro2);
+                    registroPila.push(registrobase);
                     break;
                 default:
                     throw new IllegalArgumentException("Operador aritmético no soportado: " + operador);
             }
+
+        }else{
+            if(!registro1.equals("FLAG_fstp")){
+                if (validar_tipo(registro1,reg1).equals("DWORD") || validar_tipo(registro1,reg1).equals("ULONGINT")) {
+                    if(registro1.matches("\\d+")){
+                        agregar_instruccion("MOV AUX_ulongint, " + registro1);
+                        agregar_instruccion("FILD AUX_ulongint");
+                    }else{
+                        agregar_instruccion("FiLD " + registro1);
+                    }
+                }else{
+                    agregar_instruccion("FLD " + registro1);
+                }
+            }
+            
+            if(!registro2.equals("FLAG_fstp")){
+                if (validar_tipo(registro2,reg2).equals("DWORD") || validar_tipo(registro2,reg2).equals("ULONGINT")) {
+                    if(registro2.matches("\\d+")){
+                        agregar_instruccion("MOV AUX_ulongint, " + registro2);
+                        agregar_instruccion("FILD AUX_ulongint");
+                    }else{
+                        agregar_instruccion("FiLD " + registro2);
+                    }
+                }else{
+                    agregar_instruccion("FLD " + registro2);
+                }
+            }
+
+            switch (operador) {
+                case "+":
+                    agregar_instruccion("FADD");
+                    break;
+                case "-":
+                    agregar_instruccion("FSUB");
+                    break;
+                case "*":
+                    agregar_instruccion("FMUL");
+                    break;
+                case "/":
+                    agregar_instruccion("FDIV");
+                    break;
+                default:
+                    throw new IllegalArgumentException("Operador aritmético no soportado: " + operador);
+            }
+            registroPila.push("FLAG_fstp");
+            return;
         }
-    
     }
+
+
+
+
+
 
     public static void cargar_data(String registro, DataObject object, String polaca){
 

@@ -312,13 +312,20 @@ operacion:
 
 multi_div:
     multi_div '*' valor {
-        $$ = new ParserVal(combineListsWithOperator((List<String>) $1.obj, (List<String>) $3.obj, "*"));
+        List<String> lista = new ArrayList<String>();
+        lista.addAll((List<String>) $1.obj);
+        lista.addAll((List<String>) $3.obj);
+        lista.add("*");
+
+        $$ = new ParserVal(lista);
     }
     | multi_div '/' valor {
-        $$ = new ParserVal(combineListsWithOperator((List<String>) $1.obj, (List<String>) $3.obj, "/"));
-    }
+                List<String> lista = new ArrayList<String>();
+                lista.addAll((List<String>) $1.obj);
+                lista.addAll((List<String>) $3.obj);
+                lista.add("/"); 
+                $$ = new ParserVal(lista);}
     | valor {
-        $$ = $1;
         List<String> lista = (List<String>) $1.obj;
         for(String op : lista){
             if (op.contains("|POSITION")) {
@@ -328,12 +335,14 @@ multi_div:
                 lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Variable " + op + " no declarada en el alcance actual.");
             }  
         }
+        $$ = new ParserVal(lista);
         
     }
     | error {
         lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Error en la operación.");
     }
 ;
+
 
 valor:
     variable {List<String> lista = new ArrayList<String>();  
@@ -504,26 +513,34 @@ condicion:
 
 for:
     FOR '(' declaracion_For ';' condicion  ';' incremento  ')'
-                    {$1.ival = i; alcance.push("for"+ String.valueOf(polaca_map.get(actual).size())); } cuerpo_for {
+                    {$1.ival = i; alcance.push("for"+ String.valueOf(polaca_map.get(actual).size()));
+                    lexer.getTablaSimbolos().put(generarNombreConStack($3.sval), new token($3.sval, "ulongint", ID));
+                    } cuerpo_for {
                     alcance.pop();
                     List<String> lista = (List<String>) $7.obj;
-                    agregar_a_polaca($3.sval);
+                    agregar_a_polaca(generarNombreConStack($3.sval));
+                    agregar_a_polaca(generarNombreConStack($3.sval));
                     for(String op : lista){
                         agregar_a_polaca(op);
                     }
-                    agregar_a_polaca(String.valueOf($1.ival));
+                    agregar_a_polaca("=");
+                    agregar_a_polaca(String.valueOf($3.ival));
                     agregar_a_polaca("bi");
                     polaca_map.get(actual).set($5.ival, String.valueOf(polaca_map.get(actual).size()));
                     }
 
-    | FOR '('declaracion_For ';' condicion ';' incremento ';' condicion ')' { alcance.push("for"+ String.valueOf(polaca_map.get(actual).size())); $1.ival = i;} cuerpo_for{
+    | FOR '('declaracion_For ';' condicion ';' incremento ';' condicion ')' { alcance.push("for"+ String.valueOf(polaca_map.get(actual).size())); $1.ival = i;
+                                            lexer.getTablaSimbolos().put(generarNombreConStack($3.sval), new token($3.sval, "ulongint", ID));
+                                            } cuerpo_for{
                                             alcance.pop();
                                             List<String> lista = (List<String>) $7.obj;
-                                            agregar_a_polaca($3.sval);
+                                            agregar_a_polaca(generarNombreConStack($3.sval));                                           
+                                            agregar_a_polaca(generarNombreConStack($3.sval));
                                             for(String op : lista){
                                                 agregar_a_polaca(op);
                                             }
-                                            agregar_a_polaca(String.valueOf($1.ival));
+                                            agregar_a_polaca("=");
+                                            agregar_a_polaca(String.valueOf($3.ival));
                                             agregar_a_polaca("bi");
                                             polaca_map.get(actual).set($9.ival, String.valueOf(polaca_map.get(actual).size()));
                                             polaca_map.get(actual).set($5.ival, String.valueOf(polaca_map.get(actual).size()));
@@ -546,25 +563,26 @@ cuerpo_for:
 
 
 declaracion_For:
-    ID ASIGN NUM   {agregar_a_polaca($1.sval);
-                    agregar_a_polaca($3.sval);
+    ID ASIGN NUM   {agregar_a_polaca(generarNombreConStack($1.sval));
+                    agregar_a_polaca(generarNombreConStack($3.sval));
                     agregar_a_polaca("ASSING");
                     lexer.getTablaSimbolos().put($1.sval, new token($1.sval, "ulongint", ID));
-                    $$ = new ParserVal($1.sval);}   
+                    ParserVal n = new ParserVal($1.sval);
+                    n.ival = polaca_map.get(actual).size();
+                    $$ = n;}   
     |ID ASIGN ID   {
                     String id = generarNombreConStack($3.sval);
                     if (id.contains("|POSITION")) {
                         id = id.substring(0, id.indexOf("|POSITION"));
                     }
 
-                    if(!validar_alcance(id)){
-                        lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Variable " + $3.sval + " no declarada en el alcance actual.");
-                    }
-                    agregar_a_polaca($1.sval);
-                    agregar_a_polaca($3.sval);
+                    agregar_a_polaca(generarNombreConStack($1.sval));
+                    agregar_a_polaca(generarNombreConStack($3.sval));
                     agregar_a_polaca("ASSING");
                     lexer.getTablaSimbolos().put($1.sval, new token($1.sval, "ulongint", ID));
-                    $$ = new ParserVal($1.sval);}   
+                    ParserVal n = new ParserVal($1.sval);
+                    n.ival = polaca_map.get(actual).size();
+                    $$ = n;}   
 ;
 
 incremento:
@@ -630,10 +648,12 @@ private int yylex() {
 private void actualizar_tipo(String param, String p1){
     String cadena = p1;
     while (cadena.contains(":")) { 
-        if (lexer.getTablaSimbolos().get(cadena).getTipo() != null && !lexer.getTablaSimbolos().get(cadena).getTipo().equals(param.toLowerCase())) {
-            System.out.println("REDECLARACION DE VARIABLE: " + p1 + " desde el tipo " + lexer.getTablaSimbolos().get(p1).getTipo() + " a " + 
-            param.toLowerCase() + " en la linea: " + lexer.getLineaActual());
-            break;
+        if(lexer.getTablaSimbolos().containsKey(cadena)){
+            if (lexer.getTablaSimbolos().get(cadena).getTipo() != null && !(lexer.getTablaSimbolos().get(cadena).getTipo().equals(param.toLowerCase()))) {
+                System.out.println("REDECLARACION DE VARIABLE: " + p1 + " desde el tipo " + lexer.getTablaSimbolos().get(cadena).getTipo() + " a " + 
+                param.toLowerCase() + " en la linea: " + lexer.getLineaActual());
+                break;
+            }
         }
         cadena = cadena.substring(0, cadena.lastIndexOf(":"));
     }
@@ -644,7 +664,6 @@ private void actualizar_tipo(String param, String p1){
     } else {
         simbolo.setTipo(param.toLowerCase()); 
     }
-     
     lexer.getTablaSimbolos().put(generarNombreConStack(p1) , simbolo);  
 }
 
@@ -736,33 +755,29 @@ private List<String> combineListsWithOperator(List<String> lista1, List<String> 
 }
 
 public String generarNombreConStack(String nombre) {
-    StringBuilder resultado = new StringBuilder(nombre);
-    for (int i = 0; i < alcance.size(); i++) {
-        String elemento = alcance.get(i);
-        resultado.append(":").append(elemento);
+    if (!nombre.contains(":")) {
+        StringBuilder resultado = new StringBuilder(nombre);
+        for (int i = 0; i < alcance.size(); i++) {
+            String elemento = alcance.get(i);
+            resultado.append(":").append(elemento);
+        }
+        return resultado.toString();
     }
-    return resultado.toString();
+    return "";
 }
 
 public static boolean validar_alcance(String token){
     if (token.split(":").length <=  1) {
         return true;
     }
-    Stack<String> alcance_aux = (Stack<String>) alcance.clone();    
-    String clave = token;
-    while (alcance_aux.size() > 0){
-        String actual = alcance_aux.pop();
-        if (polaca_map.containsKey(actual)){
+    for (Map.Entry<String, token> entry : lexer.getTablaSimbolos().entrySet()) {
 
-            List<String> polaca = polaca_map.get(actual);
-            for (int i = 0; i < polaca.size(); i++){
-                if (polaca.get(i).equals(clave)){
-                    return true;
-                }
+        if (entry.getKey().contains(":")){
+
+            if(token.startsWith(entry.getKey())){
+                return true;
             }
-        }
-        if (token.contains(":")) {
-                clave = clave.substring(0, clave.lastIndexOf(":"));
+
         }
     }
     return false;

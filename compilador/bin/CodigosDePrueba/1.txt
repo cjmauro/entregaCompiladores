@@ -2,28 +2,46 @@ prog_simple
 begin
 	ulongint a;
 	
-
 	single fun gsuma(ulongint i)
 		begin
 			single a;
-			a := gsuma(5);
+			a := 5;
+			
 			
 		ret(i*a);
 	end
 	
+	ulongint fun gsum(ulongint i)
+		begin
+			ulongint a;
+			a := 2;
+			
+			
+		ret(i*a);
+	end
 
 	typedef pair <ulongint> pint;
     pint p1, p2;
     p1{1} := 2;
     p1{2} := 8;
 	
-    single a;
 	a:= 7 * 2;
-	outf(a);
 	single b := 5;
-	if (1 < p1{1}) then begin
-		 a:= p1{2}+ gsuma(3);
-		 outf(a);
+	if (1 < gsum(5)) then begin
+	
+		ulongint e := 1;
+		
+	    for (n := 1; n < gsuma(6); up 1; n < 25)
+	    begin
+	        outf(n);
+	        e:= e+1;
+	    end;
+		
+         ulongint c := 55;
+         outf(gsuma(3) * e);
+		 b:= gsuma(3) * e + 55 * 10.0;
+		 outf(b);
+		 outf(e);
 	    end
 	else begin
 		outf([funciono]);
@@ -31,6 +49,5 @@ begin
     end_if;
     
     
-	outf(a);
 	
 end

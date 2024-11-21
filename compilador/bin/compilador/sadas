@@ -177,6 +177,9 @@ print:
     | OUTF '(' operacion ')' ';' {List<String> lista = (List<String>) $3.obj;  
                                     for(String op : lista){
                                         agregar_a_polaca(op);
+                                        if(!validar_alcance(op)){
+                                            lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Variable " + op + " no declarada en el alcance actual."); 
+                                        }
                                     }
                                    agregar_a_polaca("OUTF");}
     | OUTF '(' palabras_reservadas ')' { lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": parámetro incorrecto en OUTF, palabra reservada no permitida."); }
@@ -198,6 +201,7 @@ declaracion:
                                         if(validar_alcance(item)){
                                             System.out.println("Warning: " + lexer.getLineaActual() + ": Variable " + item + " ya declarada en el alcance actual.");
                                         }
+                                        System.out.println("Declaracion de variable: " + item + " de tipo " + $1.sval);
                                         String p1 = partes.length > 0 ? partes[0] : ""; 
                                         lexer.getTablaSimbolos().get(p1).setTipo($1.sval.toLowerCase());
                                         if(lexer.getTablaSimbolos().get(item) == null){
@@ -300,18 +304,28 @@ variable:
 ;
 operacion:
     operacion '+' multi_div {
-        $$ = new ParserVal(combineListsWithOperator((List<String>) $1.obj, (List<String>) $3.obj, "+"));
+        List<String> lista = new ArrayList<String>();
+        lista.addAll((List<String>) $1.obj);
+        lista.addAll((List<String>) $3.obj);
+        for(String op : (List<String>) $3.obj){
+            System.out.println("op: " + op);
+        }
+        lista.add("+");
     }
     | operacion '-' multi_div {
-        $$ = new ParserVal(combineListsWithOperator((List<String>) $1.obj, (List<String>) $3.obj, "-"));
-    }
+        List<String> lista = new ArrayList<String>();
+        lista.addAll((List<String>) $1.obj);
+        lista.addAll((List<String>) $3.obj);
+        lista.add("-");    }
     | multi_div {
-        $$ = $1;  
+        List<String> lista = (List<String>) $1.obj;
+        $$ = new ParserVal(lista); 
     }
 ;
 
 multi_div:
     multi_div '*' valor {
+
         List<String> lista = new ArrayList<String>();
         lista.addAll((List<String>) $1.obj);
         lista.addAll((List<String>) $3.obj);
@@ -342,7 +356,6 @@ multi_div:
         lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Error en la operación.");
     }
 ;
-
 
 valor:
     variable {List<String> lista = new ArrayList<String>();  
@@ -518,13 +531,11 @@ for:
                     } cuerpo_for {
                     alcance.pop();
                     List<String> lista = (List<String>) $7.obj;
-                    agregar_a_polaca(generarNombreConStack($3.sval));
-                    agregar_a_polaca(generarNombreConStack($3.sval));
+                    agregar_a_polaca($3.sval);
                     for(String op : lista){
                         agregar_a_polaca(op);
                     }
-                    agregar_a_polaca("=");
-                    agregar_a_polaca(String.valueOf($3.ival));
+                    agregar_a_polaca(String.valueOf($1.ival));
                     agregar_a_polaca("bi");
                     polaca_map.get(actual).set($5.ival, String.valueOf(polaca_map.get(actual).size()));
                     }
@@ -534,13 +545,11 @@ for:
                                             } cuerpo_for{
                                             alcance.pop();
                                             List<String> lista = (List<String>) $7.obj;
-                                            agregar_a_polaca(generarNombreConStack($3.sval));                                           
-                                            agregar_a_polaca(generarNombreConStack($3.sval));
+                                            agregar_a_polaca($3.sval);
                                             for(String op : lista){
                                                 agregar_a_polaca(op);
                                             }
-                                            agregar_a_polaca("=");
-                                            agregar_a_polaca(String.valueOf($3.ival));
+                                            agregar_a_polaca(String.valueOf($1.ival));
                                             agregar_a_polaca("bi");
                                             polaca_map.get(actual).set($9.ival, String.valueOf(polaca_map.get(actual).size()));
                                             polaca_map.get(actual).set($5.ival, String.valueOf(polaca_map.get(actual).size()));
@@ -563,26 +572,23 @@ cuerpo_for:
 
 
 declaracion_For:
-    ID ASIGN NUM   {agregar_a_polaca(generarNombreConStack($1.sval));
-                    agregar_a_polaca(generarNombreConStack($3.sval));
+    ID ASIGN NUM   {agregar_a_polaca($1.sval);
+                    agregar_a_polaca($3.sval);
                     agregar_a_polaca("ASSING");
                     lexer.getTablaSimbolos().put($1.sval, new token($1.sval, "ulongint", ID));
-                    ParserVal n = new ParserVal($1.sval);
-                    n.ival = polaca_map.get(actual).size();
-                    $$ = n;}   
+                    $$ = new ParserVal($1.sval);}   
     |ID ASIGN ID   {
                     String id = generarNombreConStack($3.sval);
                     if (id.contains("|POSITION")) {
                         id = id.substring(0, id.indexOf("|POSITION"));
                     }
 
-                    agregar_a_polaca(generarNombreConStack($1.sval));
-                    agregar_a_polaca(generarNombreConStack($3.sval));
+
+                    agregar_a_polaca($1.sval);
+                    agregar_a_polaca($3.sval);
                     agregar_a_polaca("ASSING");
                     lexer.getTablaSimbolos().put($1.sval, new token($1.sval, "ulongint", ID));
-                    ParserVal n = new ParserVal($1.sval);
-                    n.ival = polaca_map.get(actual).size();
-                    $$ = n;}   
+                    $$ = new ParserVal($1.sval);}   
 ;
 
 incremento:
@@ -649,8 +655,8 @@ private void actualizar_tipo(String param, String p1){
     String cadena = p1;
     while (cadena.contains(":")) { 
         if(lexer.getTablaSimbolos().containsKey(cadena)){
-            if (lexer.getTablaSimbolos().get(cadena).getTipo() != null && !(lexer.getTablaSimbolos().get(cadena).getTipo().equals(param.toLowerCase()))) {
-                System.out.println("REDECLARACION DE VARIABLE: " + p1 + " desde el tipo " + lexer.getTablaSimbolos().get(cadena).getTipo() + " a " + 
+            if (lexer.getTablaSimbolos().get(cadena).getTipo() != null && !lexer.getTablaSimbolos().get(cadena).getTipo().equals(param.toLowerCase())) {
+                System.out.println("REDECLARACION DE VARIABLE: " + p1 + " desde el tipo " + lexer.getTablaSimbolos().get(p1).getTipo() + " a " + 
                 param.toLowerCase() + " en la linea: " + lexer.getLineaActual());
                 break;
             }
@@ -772,14 +778,19 @@ public static boolean validar_alcance(String token){
     }
     for (Map.Entry<String, token> entry : lexer.getTablaSimbolos().entrySet()) {
 
-        if (entry.getKey().contains(":")){
+        if entry.getKey().contains(":"){
 
             if(token.startsWith(entry.getKey())){
+                System.out.println("true " + entry.getKey() + " " + token);
                 return true;
             }
 
         }
+
+        
     }
+
+
     return false;
 }
 

@@ -635,7 +635,7 @@ final static String yyrule[] = {
 "expresion_multiple : expresion",
 };
 
-//#line 591 "test.y"
+//#line 609 "test.y"
 
 Map<String, Short> palabrasTokens = new HashMap<>();
 
@@ -678,10 +678,12 @@ private int yylex() {
 private void actualizar_tipo(String param, String p1){
     String cadena = p1;
     while (cadena.contains(":")) { 
-        if (lexer.getTablaSimbolos().get(cadena).getTipo() != null && !lexer.getTablaSimbolos().get(cadena).getTipo().equals(param.toLowerCase())) {
-            System.out.println("REDECLARACION DE VARIABLE: " + p1 + " desde el tipo " + lexer.getTablaSimbolos().get(p1).getTipo() + " a " + 
-            param.toLowerCase() + " en la linea: " + lexer.getLineaActual());
-            break;
+        if(lexer.getTablaSimbolos().containsKey(cadena)){
+            if (lexer.getTablaSimbolos().get(cadena).getTipo() != null && !(lexer.getTablaSimbolos().get(cadena).getTipo().equals(param.toLowerCase()))) {
+                System.out.println("REDECLARACION DE VARIABLE: " + p1 + " desde el tipo " + lexer.getTablaSimbolos().get(cadena).getTipo() + " a " + 
+                param.toLowerCase() + " en la linea: " + lexer.getLineaActual());
+                break;
+            }
         }
         cadena = cadena.substring(0, cadena.lastIndexOf(":"));
     }
@@ -692,7 +694,6 @@ private void actualizar_tipo(String param, String p1){
     } else {
         simbolo.setTipo(param.toLowerCase()); 
     }
-     
     lexer.getTablaSimbolos().put(generarNombreConStack(p1) , simbolo);  
 }
 
@@ -784,33 +785,29 @@ private List<String> combineListsWithOperator(List<String> lista1, List<String> 
 }
 
 public String generarNombreConStack(String nombre) {
-    StringBuilder resultado = new StringBuilder(nombre);
-    for (int i = 0; i < alcance.size(); i++) {
-        String elemento = alcance.get(i);
-        resultado.append(":").append(elemento);
+    if (!nombre.contains(":")) {
+        StringBuilder resultado = new StringBuilder(nombre);
+        for (int i = 0; i < alcance.size(); i++) {
+            String elemento = alcance.get(i);
+            resultado.append(":").append(elemento);
+        }
+        return resultado.toString();
     }
-    return resultado.toString();
+    return "";
 }
 
 public static boolean validar_alcance(String token){
     if (token.split(":").length <=  1) {
         return true;
     }
-    Stack<String> alcance_aux = (Stack<String>) alcance.clone();    
-    String clave = token;
-    while (alcance_aux.size() > 0){
-        String actual = alcance_aux.pop();
-        if (polaca_map.containsKey(actual)){
+    for (Map.Entry<String, token> entry : lexer.getTablaSimbolos().entrySet()) {
 
-            List<String> polaca = polaca_map.get(actual);
-            for (int i = 0; i < polaca.size(); i++){
-                if (polaca.get(i).equals(clave)){
-                    return true;
-                }
+        if (entry.getKey().contains(":")){
+
+            if(token.startsWith(entry.getKey())){
+                return true;
             }
-        }
-        if (token.contains(":")) {
-                clave = clave.substring(0, clave.lastIndexOf(":"));
+
         }
     }
     return false;
@@ -897,7 +894,7 @@ public List<Integer> getSaltos(String polaca) {
     }
     return saltos;
 }
-//#line 829 "Parser.java"
+//#line 826 "Parser.java"
 //###############################################################
 // method: yylexdebug : check lexer state
 //###############################################################
@@ -1435,19 +1432,26 @@ break;
 case 82:
 //#line 314 "test.y"
 {
-        yyval = new ParserVal(combineListsWithOperator((List<String>) val_peek(2).obj, (List<String>) val_peek(0).obj, "*"));
+        List<String> lista = new ArrayList<String>();
+        lista.addAll((List<String>) val_peek(2).obj);
+        lista.addAll((List<String>) val_peek(0).obj);
+        lista.add("*");
+
+        yyval = new ParserVal(lista);
     }
 break;
 case 83:
-//#line 317 "test.y"
+//#line 322 "test.y"
 {
-        yyval = new ParserVal(combineListsWithOperator((List<String>) val_peek(2).obj, (List<String>) val_peek(0).obj, "/"));
-    }
+                List<String> lista = new ArrayList<String>();
+                lista.addAll((List<String>) val_peek(2).obj);
+                lista.addAll((List<String>) val_peek(0).obj);
+                lista.add("/"); 
+                yyval = new ParserVal(lista);}
 break;
 case 84:
-//#line 320 "test.y"
+//#line 328 "test.y"
 {
-        yyval = val_peek(0);
         List<String> lista = (List<String>) val_peek(0).obj;
         for(String op : lista){
             if (op.contains("|POSITION")) {
@@ -1457,44 +1461,45 @@ case 84:
                 lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Variable " + op + " no declarada en el alcance actual.");
             }  
         }
+        yyval = new ParserVal(lista);
         
     }
 break;
 case 85:
-//#line 333 "test.y"
+//#line 341 "test.y"
 {
         lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Error en la operación.");
     }
 break;
 case 86:
-//#line 339 "test.y"
+//#line 348 "test.y"
 {List<String> lista = new ArrayList<String>();  
                 lista.add(val_peek(0).sval);
                 yyval = new ParserVal(lista);}
 break;
 case 87:
-//#line 342 "test.y"
+//#line 351 "test.y"
 {token palabra = (token) val_peek(0).obj; 
                 List<String> lista = new ArrayList<String>();
                 lista.add(palabra.getKey());
                 yyval = new ParserVal(lista);}
 break;
 case 88:
-//#line 346 "test.y"
+//#line 355 "test.y"
 {token palabra = (token) val_peek(0).obj; 
                 List<String> lista = new ArrayList<String>();
                 lista.add(palabra.getKey());
                 yyval = new ParserVal(lista);}
 break;
 case 89:
-//#line 350 "test.y"
+//#line 359 "test.y"
 {token palabra = (token) val_peek(0).obj; 
                 List<String> lista = new ArrayList<String>();
                 lista.add(palabra.getKey());
                 yyval = new ParserVal(lista);}
 break;
 case 90:
-//#line 354 "test.y"
+//#line 363 "test.y"
 {token palabra = (token) val_peek(1).obj; 
                     token multilinea = (token) val_peek(0).obj;
                     List<String> lista = new ArrayList<String>();
@@ -1503,18 +1508,18 @@ case 90:
                     yyval = new ParserVal(lista);}
 break;
 case 91:
-//#line 360 "test.y"
+//#line 369 "test.y"
 {token palabra = (token) val_peek(0).obj; 
                 List<String> lista = new ArrayList<String>();
                 lista.add(palabra.getKey());
                 yyval = new ParserVal(lista);}
 break;
 case 92:
-//#line 364 "test.y"
+//#line 373 "test.y"
 { yyval = val_peek(0); }
 break;
 case 93:
-//#line 365 "test.y"
+//#line 374 "test.y"
 {token palabra = (token) val_peek(0).obj; 
                  String resultado =  palabra.getKey(); 
                  agregarSimbolo(resultado, palabra);
@@ -1522,7 +1527,7 @@ case 93:
                  lista.add("-"+ palabra.getKey()); }
 break;
 case 94:
-//#line 374 "test.y"
+//#line 383 "test.y"
 {   List<List<String>> lista = new ArrayList<List<String>>();
         List<String> lista2 = (List<String>) val_peek(0).obj;
         lista.add(lista2);
@@ -1531,7 +1536,7 @@ case 94:
     }
 break;
 case 95:
-//#line 381 "test.y"
+//#line 390 "test.y"
 {
         List<List<String>> lista = (List<List<String>>) val_peek(2).obj;
         List<String> lista2 = (List<String>) val_peek(0).obj;
@@ -1540,7 +1545,7 @@ case 95:
     }
 break;
 case 96:
-//#line 391 "test.y"
+//#line 400 "test.y"
 {
             token palabra = (token) val_peek(3).obj; 
             token_function tf = (token_function) lexer.getTablaSimbolos().get(generarNombreConStack(palabra.getKey()));
@@ -1590,12 +1595,12 @@ case 96:
             yyval = new ParserVal(lista); }
 break;
 case 97:
-//#line 438 "test.y"
+//#line 447 "test.y"
 { lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Falta argumento en llamado de función."); 
                         yyval = new ParserVal(new ArrayList<String>());}
 break;
 case 98:
-//#line 444 "test.y"
+//#line 453 "test.y"
 {token palabra = (token) val_peek(0).obj;
             palabra.setUso("parametro");
             palabra.setTipo(val_peek(1).sval);
@@ -1603,19 +1608,19 @@ case 98:
             yyval.sval = palabra.getKey(); }
 break;
 case 99:
-//#line 449 "test.y"
+//#line 458 "test.y"
 { lexer.getErrores().add("Error en línea " + lexer.getLineaActual() +  ": Falta el nombre de parametro formal en la declaracion de la funcion"); }
 break;
 case 100:
-//#line 450 "test.y"
+//#line 459 "test.y"
 { lexer.getErrores().add("Error en línea " + lexer.getLineaActual() +  ": Falta el tipo de parametro formal en la declaracion de la funcion"); }
 break;
 case 101:
-//#line 451 "test.y"
+//#line 460 "test.y"
 { lexer.getErrores().add("PARAMETRO NO VALIDO"); }
 break;
 case 102:
-//#line 455 "test.y"
+//#line 464 "test.y"
 {yyval = new ParserVal(val_peek(0).sval); 
         if (lexer.getTablaSimbolos().get(val_peek(0).sval).getUso() != "tipo"){
             lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Tipo " + val_peek(0).sval + " no valido");
@@ -1623,56 +1628,56 @@ case 102:
         }
 break;
 case 103:
-//#line 460 "test.y"
+//#line 469 "test.y"
 { yyval = new ParserVal(val_peek(0).sval); }
 break;
 case 104:
-//#line 461 "test.y"
+//#line 470 "test.y"
 {yyval = new ParserVal(val_peek(0).sval); }
 break;
 case 105:
-//#line 462 "test.y"
+//#line 471 "test.y"
 {yyval = new ParserVal(val_peek(0).sval); }
 break;
 case 106:
-//#line 463 "test.y"
+//#line 472 "test.y"
 {yyval = new ParserVal(val_peek(0).sval); }
 break;
 case 113:
-//#line 476 "test.y"
+//#line 485 "test.y"
 {yyval.sval = "=";}
 break;
 case 114:
-//#line 477 "test.y"
+//#line 486 "test.y"
 {yyval.sval = "!=";}
 break;
 case 115:
-//#line 478 "test.y"
+//#line 487 "test.y"
 {yyval.sval = ">";}
 break;
 case 116:
-//#line 479 "test.y"
+//#line 488 "test.y"
 {yyval.sval = "<";}
 break;
 case 117:
-//#line 480 "test.y"
+//#line 489 "test.y"
 {yyval.sval = ">=";}
 break;
 case 118:
-//#line 481 "test.y"
+//#line 490 "test.y"
 {yyval.sval = "<=";}
 break;
 case 119:
-//#line 482 "test.y"
+//#line 491 "test.y"
 { lexer.getErrores().add("Error en línea " 
                 + lexer.getLineaActual() + ":falta comparador"); }
 break;
 case 120:
-//#line 487 "test.y"
+//#line 496 "test.y"
 { yyval = val_peek(1); }
 break;
 case 121:
-//#line 488 "test.y"
+//#line 497 "test.y"
 {List<String> lista = new ArrayList<String>();
                         lista.addAll((List<String>) val_peek(2).obj);  
                         for(String op : (List<String>) val_peek(2).obj){
@@ -1688,116 +1693,125 @@ case 121:
                         }
 break;
 case 122:
-//#line 501 "test.y"
+//#line 510 "test.y"
 {lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ":Error en la condicion");}
 break;
 case 123:
-//#line 502 "test.y"
+//#line 511 "test.y"
 {lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ":Error en la condicion, falta comparador");}
 break;
 case 124:
-//#line 507 "test.y"
-{val_peek(7).ival = i; alcance.push("for"+ String.valueOf(polaca_map.get(actual).size())); }
+//#line 516 "test.y"
+{val_peek(7).ival = i; alcance.push("for"+ String.valueOf(polaca_map.get(actual).size()));
+                    lexer.getTablaSimbolos().put(generarNombreConStack(val_peek(5).sval), new token(val_peek(5).sval, "ulongint", ID));
+                    }
 break;
 case 125:
-//#line 507 "test.y"
+//#line 518 "test.y"
 {
                     alcance.pop();
                     List<String> lista = (List<String>) val_peek(3).obj;
-                    agregar_a_polaca(val_peek(7).sval);
+                    agregar_a_polaca(generarNombreConStack(val_peek(7).sval));
+                    agregar_a_polaca(generarNombreConStack(val_peek(7).sval));
                     for(String op : lista){
                         agregar_a_polaca(op);
                     }
-                    agregar_a_polaca(String.valueOf(val_peek(9).ival));
+                    agregar_a_polaca("=");
+                    agregar_a_polaca(String.valueOf(val_peek(7).ival));
                     agregar_a_polaca("bi");
                     polaca_map.get(actual).set(val_peek(5).ival, String.valueOf(polaca_map.get(actual).size()));
                     }
 break;
 case 126:
-//#line 519 "test.y"
-{ alcance.push("for"+ String.valueOf(polaca_map.get(actual).size())); val_peek(9).ival = i;}
+//#line 532 "test.y"
+{ alcance.push("for"+ String.valueOf(polaca_map.get(actual).size())); val_peek(9).ival = i;
+                                            lexer.getTablaSimbolos().put(generarNombreConStack(val_peek(7).sval), new token(val_peek(7).sval, "ulongint", ID));
+                                            }
 break;
 case 127:
-//#line 519 "test.y"
+//#line 534 "test.y"
 {
                                             alcance.pop();
                                             List<String> lista = (List<String>) val_peek(5).obj;
-                                            agregar_a_polaca(val_peek(9).sval);
+                                            agregar_a_polaca(generarNombreConStack(val_peek(9).sval));                                           
+                                            agregar_a_polaca(generarNombreConStack(val_peek(9).sval));
                                             for(String op : lista){
                                                 agregar_a_polaca(op);
                                             }
-                                            agregar_a_polaca(String.valueOf(val_peek(11).ival));
+                                            agregar_a_polaca("=");
+                                            agregar_a_polaca(String.valueOf(val_peek(9).ival));
                                             agregar_a_polaca("bi");
                                             polaca_map.get(actual).set(val_peek(3).ival, String.valueOf(polaca_map.get(actual).size()));
                                             polaca_map.get(actual).set(val_peek(7).ival, String.valueOf(polaca_map.get(actual).size()));
                                            }
 break;
 case 128:
-//#line 531 "test.y"
+//#line 548 "test.y"
 {lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + 
                                                 ":Falta parentesis en la condicion del for");}
 break;
 case 129:
-//#line 533 "test.y"
+//#line 550 "test.y"
 {lexer.getErrores().add("Error en línea " + lexer.getLineaActual()
                                                 + ": condicion del for mal definida");}
 break;
 case 130:
-//#line 535 "test.y"
+//#line 552 "test.y"
 {lexer.getErrores().add("Error en línea "
                                                 + lexer.getLineaActual() + ":Falta ; en for");}
 break;
 case 131:
-//#line 537 "test.y"
+//#line 554 "test.y"
 {lexer.getErrores().add("Error en línea "
                                                 + lexer.getLineaActual() + ":Falta ; en for");}
 break;
 case 132:
-//#line 542 "test.y"
+//#line 559 "test.y"
 {yyval = val_peek(2);}
 break;
 case 133:
-//#line 543 "test.y"
+//#line 560 "test.y"
 {yyval = val_peek(0);}
 break;
 case 134:
-//#line 544 "test.y"
+//#line 561 "test.y"
 {lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ":Falta el cuerpo del for");}
 break;
 case 135:
-//#line 549 "test.y"
-{agregar_a_polaca(val_peek(2).sval);
-                    agregar_a_polaca(val_peek(0).sval);
+//#line 566 "test.y"
+{agregar_a_polaca(generarNombreConStack(val_peek(2).sval));
+                    agregar_a_polaca(generarNombreConStack(val_peek(0).sval));
                     agregar_a_polaca("ASSING");
                     lexer.getTablaSimbolos().put(val_peek(2).sval, new token(val_peek(2).sval, "ulongint", ID));
-                    yyval = new ParserVal(val_peek(2).sval);}
+                    ParserVal n = new ParserVal(val_peek(2).sval);
+                    n.ival = polaca_map.get(actual).size();
+                    yyval = n;}
 break;
 case 136:
-//#line 554 "test.y"
+//#line 573 "test.y"
 {
                     String id = generarNombreConStack(val_peek(0).sval);
                     if (id.contains("|POSITION")) {
                         id = id.substring(0, id.indexOf("|POSITION"));
                     }
 
-                    if(!validar_alcance(id)){
-                        lexer.getErrores().add("Error en línea " + lexer.getLineaActual() + ": Variable " + val_peek(0).sval + " no declarada en el alcance actual.");
-                    }
-                    agregar_a_polaca(val_peek(2).sval);
-                    agregar_a_polaca(val_peek(0).sval);
+                    agregar_a_polaca(generarNombreConStack(val_peek(2).sval));
+                    agregar_a_polaca(generarNombreConStack(val_peek(0).sval));
                     agregar_a_polaca("ASSING");
                     lexer.getTablaSimbolos().put(val_peek(2).sval, new token(val_peek(2).sval, "ulongint", ID));
-                    yyval = new ParserVal(val_peek(2).sval);}
+                    ParserVal n = new ParserVal(val_peek(2).sval);
+                    n.ival = polaca_map.get(actual).size();
+                    yyval = n;}
 break;
 case 137:
-//#line 571 "test.y"
+//#line 589 "test.y"
 {List<String> lista = new ArrayList<String>();
             lista.add(val_peek(0).sval);
             lista.add("+");
             yyval= new ParserVal(lista);}
 break;
 case 138:
-//#line 576 "test.y"
+//#line 594 "test.y"
 {
                 List<String> lista = new ArrayList<String>();
                 lista.add(val_peek(0).sval);
@@ -1805,11 +1819,11 @@ case 138:
                 yyval= new ParserVal(lista);}
 break;
 case 139:
-//#line 581 "test.y"
+//#line 599 "test.y"
 {lexer.getErrores().add("Error en línea " + lexer.getLineaActual() 
                         + ":incremento/decremento del bucle mal definido");}
 break;
-//#line 1736 "Parser.java"
+//#line 1750 "Parser.java"
 //########## END OF USER-SUPPLIED ACTIONS ##########
     }//switch
     //#### Now let's reduce... ####
