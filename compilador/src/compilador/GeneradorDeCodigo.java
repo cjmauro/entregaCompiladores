@@ -569,7 +569,6 @@ public class GeneradorDeCodigo {
             }else{
                 agregar_instruccion("JMP " + "Label" + operando1);
             }
-            saltosPila.put(operando1, "Label" + operando1);
         }
     }
 
@@ -612,46 +611,65 @@ public class GeneradorDeCodigo {
 
             agregar_instruccion("FINIT");
             if(devolverTipo(registro1).equals("ulongint") || registro1.matches("\\d+")){
-                agregar_instruccion("MOV EDX, " + registro1);
-                agregar_instruccion("MOV AUX_ulongint, EDX");
-                agregar_instruccion("FILD AUX_ulongint");
+                agregar_instruccion("MOV AUX_ulongint, " + registro1);
+                agregar_instruccion("FLD AUX_ulongint");
             }else{
-                agregar_instruccion("FLD " + registro1);
+                agregar_instruccion("FiLD " + registro1);
 
             }
             if(devolverTipo(registro2).equals("ulongint") || registro2.matches("\\d+")){
-                agregar_instruccion("MOV EDX, " + registro2);
-                agregar_instruccion("MOV AUX_ulongint, EDX");
-                agregar_instruccion("FILD AUX_ulongint");
+                agregar_instruccion("MOV AUX_ulongint, " + registro2);
+                agregar_instruccion("FLD AUX_ulongint");
             }else{
-                agregar_instruccion("FLD " + registro2);
+                agregar_instruccion("FiLD " + registro2);
             }
             agregar_instruccion("FCOMP st(1)");
             agregar_instruccion("FSTSW AX");
             agregar_instruccion("SAHF");
 
+            switch (token) {
+                case ">=":
+                    comparadorTemporal =  "JAE";
+                    break;
+                case ">":
+                    comparadorTemporal = "JA"; 
+                    break;
+                case "<=":
+                    comparadorTemporal = "JBE";
+                    break;
+                case "<":
+                    comparadorTemporal = "JB";
+                    break;
+                case "==":
+                    comparadorTemporal = "JE";
+                    break;
+                default:
+                    throw new IllegalArgumentException("Operador de comparación no soportado: " + token);
+            }
+
         }else{
             agregar_instruccion("MOV EAX, " + registro2 );
             agregar_instruccion("CMP EAX, " + registro1);
-        }
-        switch (token) {
-            case ">=":
-                comparadorTemporal =  "JGE";
-                break;
-            case ">":
-                comparadorTemporal = "JG"; 
-                break;
-            case "<=":
-                comparadorTemporal = "JLE";
-                break;
-            case "<":
-                comparadorTemporal = "JL";
-                break;
-            case "==":
-                comparadorTemporal = "JE";
-                break;
-            default:
-                throw new IllegalArgumentException("Operador de comparación no soportado: " + token);
+        
+            switch (token) {
+                case ">=":
+                    comparadorTemporal =  "JGE";
+                    break;
+                case ">":
+                    comparadorTemporal = "JG"; 
+                    break;
+                case "<=":
+                    comparadorTemporal = "JLE";
+                    break;
+                case "<":
+                    comparadorTemporal = "JL";
+                    break;
+                case "==":
+                    comparadorTemporal = "JE";
+                    break;
+                default:
+                    throw new IllegalArgumentException("Operador de comparación no soportado: " + token);
+            }
         }
         
     }
