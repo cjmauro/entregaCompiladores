@@ -5,7 +5,8 @@ includelib \masm32\lib\kernel32.lib
 includelib \masm32\lib\user32.lib
 INCLUDE \masm32\include\masm32rt.inc
 .data
-	FLOAT0 REAL8 10.0
+	FLOAT1 REAL8 10.0
+	FLOAT0 REAL8 1.8
 	b REAL8 ?
 	recursionFlaggsum DWORD 0
 	i_ulongint DWORD ?
@@ -82,29 +83,31 @@ start:
 	MOV AUX_ulongint, EDX
 	FILD AUX_ulongint
 	FSTP b_single
-	MOV EAX, 5
-	MOV i_ulongint, EAX
-	CALL gsum
-	MOV EAX, ECX
-	CMP EAX, 1
-	JL Label89
+	FINIT
+	MOV AUX_ulongint, 1
+	FLD AUX_ulongint
+	FiLD FLOAT0
+	FCOMP st(1)
+	FSTSW AX
+	SAHF
+	JB Label85
 	MOV EAX, 1
 	MOV e_ulongint, EAX
 	MOV n_ulongint, 1
-Label33:
+Label29:
 	MOV EAX, 6
 	MOV i_ulongint, EAX
 	CALL gsuma
 	FINIT
-	FLD n_ulongint
-	FLD result
+	FiLD n_ulongint
+	FiLD result
 	FCOMP st(1)
 	FSTSW AX
 	SAHF
-	JL Label61
+	JB Label57
 	MOV EAX, 25
 	CMP EAX, n_ulongint
-	JL Label61
+	JL Label57
 	printf("%u\n", n_ulongint)
 	MOV EBX, e_ulongint
 	ADD EBX, 1
@@ -114,8 +117,8 @@ Label33:
 	ADD EBX, 1
 	MOV EAX, EBX
 	MOV n_ulongint, EAX
-	JMP Label33
-Label61:
+	JMP Label29
+Label57:
 	MOV EAX, 55
 	MOV c_ulongint, EAX
 	MOV EAX, 3
@@ -134,15 +137,18 @@ Label61:
 	FMUL
 	MOV AUX_ulongint, 55
 	FILD AUX_ulongint
-	FLD FLOAT0
+	FLD FLOAT1
 	FMUL
 	FADD
 	FSTP b_single
 	printf("%f\n", b_single)
 	printf("%u\n", e_ulongint)
-	JMP Label93
-Label89:
+	JMP Label89
+Label85:
 	printf("funciono\n")
-Label93:
+Label89:
+	MOV EAX, 5
+	MOV c_ulongint, EAX
+	printf("%u\n", c_ulongint)
 	INVOKE ExitProcess, 0 
 END start
