@@ -1,34 +1,42 @@
 .386
-.model flat, stdcall
+.MODEL flat, stdcall
 option casemap :none
+include \masm32\include\windows.inc
+include \masm32\include\kernel32.inc
+include \masm32\include\user32.inc
 includelib \masm32\lib\kernel32.lib
 includelib \masm32\lib\user32.lib
-INCLUDE \masm32\include\masm32rt.inc
+includelib \masm32\lib\masm32.lib
+dll_dllcrt0 PROTO C
+printf PROTO C : VARARG
 .data
 	FLOAT1 REAL8 10.0
 	FLOAT0 REAL8 1.8
-	b REAL8 ?
 	recursionFlaggsum DWORD 0
 	i_ulongint DWORD ?
 	c_ulongint DWORD ?
 	p2_ulongint DWORD ?
+	__new_line__ db 13, 10, 0
+	result REAL8 ?
+	a_ulongint DWORD ?
+	recursionFlaggsuma DWORD 0
+	buffer db 256 dup(?)
+	a_single REAL8 ?
+	b_single REAL8 ?
+	b REAL8 ?
 	p1_ulongintprimero DWORD ?
 	e DWORD ?
 	format db "%d", 0
 	p1_ulongint DWORD ?
+	formatFloat db "%f", 0
 	e_ulongint DWORD ?
 	n_ulongint DWORD ?
 	errorResta db "Error: Resultado negativo detectado en la resta.", 0
 	p1_ulongintsegundo DWORD ?
-	result REAL8 ?
-	a_ulongint DWORD ?
+	texto0 db "funciono", 0
 	AUX_ulongint DWORD ?
-	recursionFlaggsuma DWORD 0
 	errorMultiplicacion db "Error: Overflow detectado en la multiplicacion.", 0
 	errorRecursion db "Error: Recursion no soportada detectada.", 0
-	buffer db 256 dup(?)
-	a_single REAL8 ?
-	b_single REAL8 ?
 .code
 OverflowDetected:
     invoke MessageBox, 0, addr errorMultiplicacion, addr errorMultiplicacion, MB_ICONERROR
@@ -108,7 +116,8 @@ Label29:
 	MOV EAX, 25
 	CMP EAX, n_ulongint
 	JL Label57
-	printf("%u\n", n_ulongint)
+	invoke printf, addr format, n_ulongint
+	invoke printf, addr __new_line__
 	MOV EBX, e_ulongint
 	ADD EBX, 1
 	MOV EAX, EBX
@@ -128,7 +137,8 @@ Label57:
 	FiLD e_ulongint
 	FMUL
 	fstp result
-	printf("%f\n", result)
+	invoke printf, addr formatFloat, result
+	invoke printf, addr __new_line__
 	MOV EAX, 3
 	MOV i_ulongint, EAX
 	CALL gsuma
@@ -141,14 +151,18 @@ Label57:
 	FMUL
 	FADD
 	FSTP b_single
-	printf("%f\n", b_single)
-	printf("%u\n", e_ulongint)
+	invoke printf, addr formatFloat, b_single
+	invoke printf, addr __new_line__
+	invoke printf, addr format, e_ulongint
+	invoke printf, addr __new_line__
 	JMP Label89
 Label85:
-	printf("funciono\n")
+	invoke printf, ADDR  texto0
+	invoke printf, addr __new_line__
 Label89:
 	MOV EAX, 5
 	MOV c_ulongint, EAX
-	printf("%u\n", c_ulongint)
+	invoke printf, addr format, c_ulongint
+	invoke printf, addr __new_line__
 	INVOKE ExitProcess, 0 
 END start

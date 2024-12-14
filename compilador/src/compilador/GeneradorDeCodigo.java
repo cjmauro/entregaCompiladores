@@ -27,6 +27,7 @@ public class GeneradorDeCodigo {
     private static String salto;
     private static String asmString = "";
     private static String comparadorTemporal = "";
+    private static int iText = 0;
 
     public GeneradorDeCodigo(File file){
         try {
@@ -34,13 +35,19 @@ public class GeneradorDeCodigo {
 	        parser.yydebug = false;
 
 	        parser.yyparse();
-            
+
             declaraciones.add(".386");
-            declaraciones.add(".model flat, stdcall");
+            declaraciones.add(".MODEL flat, stdcall");
             declaraciones.add("option casemap :none");
+            declaraciones.add("include \\masm32\\include\\windows.inc");
+            declaraciones.add("include \\masm32\\include\\kernel32.inc");
+            declaraciones.add("include \\masm32\\include\\user32.inc");
             declaraciones.add("includelib \\masm32\\lib\\kernel32.lib");
             declaraciones.add("includelib \\masm32\\lib\\user32.lib");
-            declaraciones.add("INCLUDE \\masm32\\include\\masm32rt.inc");
+            declaraciones.add("includelib \\masm32\\lib\\masm32.lib");
+            declaraciones.add("dll_dllcrt0 PROTO C");
+            declaraciones.add("printf PROTO C : VARARG");
+
             instrucciones.add(".code");
 
             instrucciones.add( """
@@ -57,8 +64,9 @@ public class GeneradorDeCodigo {
                     INVOKE ExitProcess, 1
 
                 """);
-    
 
+            data.put("formatFloat", new DataObject("formatFloat", "db", "\"%f\", 0"));
+            data.put("__new_line__", new DataObject("__new_line__", "db", "13, 10, 0"));
             data.put("errorMultiplicacion", new DataObject("errorMultiplicacion", "db", "\"Error: Overflow detectado en la multiplicacion.\", 0"));
             data.put("errorRecursion", new DataObject("errorRecursion", "db", "\"Error: Recursion no soportada detectada.\", 0"));
             data.put("errorResta", new DataObject("errorResta", "db", "\"Error: Resultado negativo detectado en la resta.\", 0"));
@@ -285,6 +293,54 @@ public class GeneradorDeCodigo {
 
         if(tablaSimbolos.get(reg) != null){
             if(tablaSimbolos.get(reg).getTipo().equals("multiline")){
+                data.put("texto" + Integer.toString(iText), new DataObject("texto" + Integer.toString(iText), "db", "\"" + registro + "\", 0"));
+                agregar_instruccion("invoke printf, ADDR  texto" + Integer.toString(iText));
+                agregar_instruccion("invoke printf, addr __new_line__");
+                //agregar_instruccion("printf(\"" + registro + "\\n\")");
+                return;
+            }
+        }
+        if(es_registro(registro)){
+            agregar_instruccion("Mov aux_ulongint, " + registro);
+
+            //agregar_instruccion("printf(\"%u\\n\", aux_ulongint)");
+            agregar_instruccion("invoke printf, addr format, aux_ulongint");
+            agregar_instruccion("invoke printf, addr __new_line__");
+        }else if(registro.equals("FLAG_fstp")){
+            agregar_instruccion("fstp result");
+            agregar_instruccion("invoke printf, addr formatFloat, result");
+            //agregar_instruccion("printf(\"%f\\n\", result)");
+            agregar_instruccion("invoke printf, addr __new_line__");
+        }else if(data.get(registro) != null || float_values.get(reg) != null){
+            if(float_values.get(reg) != null || data.get(registro).getType().equals("REAL8") ){
+                //agregar_instruccion("printf(\"%f\\n\", " + registro + ")"); 
+                agregar_instruccion("invoke printf, addr formatFloat, " + registro);
+                agregar_instruccion("invoke printf, addr __new_line__");
+            }else{
+                //agregar_instruccion("printf(\"%u\\n\", " + registro + ")");
+                agregar_instruccion("invoke printf, addr format, " + registro);
+                agregar_instruccion("invoke printf, addr __new_line__");
+            }
+        }
+    }
+
+
+    /* 
+    public static void generarCodigoImpresion(String token){
+        String reg = registroPila.peek();
+        String registro = recuperar_registro();
+        Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
+
+        if(tablaSimbolos.get(reg) != null){
+            if(tablaSimbolos.get(reg).getTipo().equals("single")){
+                reg = reg + "_single";
+            }else if(tablaSimbolos.get(reg).getTipo().equals("ulongint")){
+                reg = reg + "_ulongint";
+            }
+        }
+
+        if(tablaSimbolos.get(reg) != null){
+            if(tablaSimbolos.get(reg).getTipo().equals("multiline")){
                 agregar_instruccion("printf(\"" + registro + "\\n\")");
                 return;
             }
@@ -303,7 +359,7 @@ public class GeneradorDeCodigo {
             }
         }
     }
-
+    */
     public static void generarCodigoAsignacion(){
         String reg2 = registroPila.peek();
         String registro2 = recuperar_registro();

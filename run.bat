@@ -11,11 +11,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-\masm32\bin\Link /SUBSYSTEM:CONSOLE hello.obj /LIBPATH:\masm32\lib kernel32.lib masm32.lib
+\masm32\bin\Link /SUBSYSTEM:CONSOLE hello.obj /LIBPATH:\masm32\lib kernel32.lib msvcrt.lib
 if errorlevel 1 (
     echo Error en el enlace de hello.obj
     pause
     exit /b 1
 )
-C:\masm32\proyectos\hello.exe
+
+cd /d "%~dp0compilador\src"
+hello.exe
 pause
