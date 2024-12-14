@@ -28,12 +28,15 @@ printf PROTO C : VARARG
 	e DWORD ?
 	format db "%d", 0
 	p1_ulongint DWORD ?
+	texto3 db "funciono", 0
 	formatFloat db "%f", 0
+	texto2 db "hola3", 0
 	e_ulongint DWORD ?
 	n_ulongint DWORD ?
 	errorResta db "Error: Resultado negativo detectado en la resta.", 0
 	p1_ulongintsegundo DWORD ?
-	texto0 db "funciono", 0
+	texto1 db "hola2", 0
+	texto0 db "hola1", 0
 	AUX_ulongint DWORD ?
 	errorMultiplicacion db "Error: Overflow detectado en la multiplicacion.", 0
 	errorRecursion db "Error: Recursion no soportada detectada.", 0
@@ -78,6 +81,12 @@ gsuma:
 	DEC recursionFlaggsuma
 	ret
 start:
+	invoke printf, ADDR  texto0
+	invoke printf, addr __new_line__
+	invoke printf, ADDR  texto1
+	invoke printf, addr __new_line__
+	invoke printf, ADDR  texto2
+	invoke printf, addr __new_line__
 	MOV EAX, 2
 	MOV p1_ulongintprimero, EAX
 	MOV EAX, 8
@@ -98,11 +107,11 @@ start:
 	FCOMP st(1)
 	FSTSW AX
 	SAHF
-	JB Label85
+	JB Label91
 	MOV EAX, 1
 	MOV e_ulongint, EAX
 	MOV n_ulongint, 1
-Label29:
+Label35:
 	MOV EAX, 6
 	MOV i_ulongint, EAX
 	CALL gsuma
@@ -112,10 +121,10 @@ Label29:
 	FCOMP st(1)
 	FSTSW AX
 	SAHF
-	JB Label57
+	JB Label63
 	MOV EAX, 25
 	CMP EAX, n_ulongint
-	JL Label57
+	JL Label63
 	invoke printf, addr format, n_ulongint
 	invoke printf, addr __new_line__
 	MOV EBX, e_ulongint
@@ -126,8 +135,8 @@ Label29:
 	ADD EBX, 1
 	MOV EAX, EBX
 	MOV n_ulongint, EAX
-	JMP Label29
-Label57:
+	JMP Label35
+Label63:
 	MOV EAX, 55
 	MOV c_ulongint, EAX
 	MOV EAX, 3
@@ -155,11 +164,11 @@ Label57:
 	invoke printf, addr __new_line__
 	invoke printf, addr format, e_ulongint
 	invoke printf, addr __new_line__
-	JMP Label89
-Label85:
-	invoke printf, ADDR  texto0
+	JMP Label95
+Label91:
+	invoke printf, ADDR  texto3
 	invoke printf, addr __new_line__
-Label89:
+Label95:
 	MOV EAX, 5
 	MOV c_ulongint, EAX
 	invoke printf, addr format, c_ulongint

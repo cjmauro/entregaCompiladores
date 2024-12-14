@@ -10,7 +10,7 @@ public class test {
         System.out.println("Por favor, ingrese la ruta del archivo: ");
         Scanner scanner = new Scanner(System.in);
         String fileP = scanner.nextLine();
-        //String fileP = "C:/Users/mauro/eclipse-workspace/compilador/src/CodigosDePrueba/1.txt";
+        //fileP = "C:/Users/mauro/eclipse-workspace/compilador/src/CodigosDePrueba/1.txt";
 
         File file = new File(fileP);
         GeneradorDeCodigo gdc = new GeneradorDeCodigo(file);

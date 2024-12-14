@@ -294,72 +294,33 @@ public class GeneradorDeCodigo {
         if(tablaSimbolos.get(reg) != null){
             if(tablaSimbolos.get(reg).getTipo().equals("multiline")){
                 data.put("texto" + Integer.toString(iText), new DataObject("texto" + Integer.toString(iText), "db", "\"" + registro + "\", 0"));
+                
                 agregar_instruccion("invoke printf, ADDR  texto" + Integer.toString(iText));
                 agregar_instruccion("invoke printf, addr __new_line__");
-                //agregar_instruccion("printf(\"" + registro + "\\n\")");
+                iText ++;
                 return;
             }
         }
         if(es_registro(registro)){
             agregar_instruccion("Mov aux_ulongint, " + registro);
 
-            //agregar_instruccion("printf(\"%u\\n\", aux_ulongint)");
             agregar_instruccion("invoke printf, addr format, aux_ulongint");
             agregar_instruccion("invoke printf, addr __new_line__");
         }else if(registro.equals("FLAG_fstp")){
             agregar_instruccion("fstp result");
             agregar_instruccion("invoke printf, addr formatFloat, result");
-            //agregar_instruccion("printf(\"%f\\n\", result)");
             agregar_instruccion("invoke printf, addr __new_line__");
         }else if(data.get(registro) != null || float_values.get(reg) != null){
             if(float_values.get(reg) != null || data.get(registro).getType().equals("REAL8") ){
-                //agregar_instruccion("printf(\"%f\\n\", " + registro + ")"); 
                 agregar_instruccion("invoke printf, addr formatFloat, " + registro);
                 agregar_instruccion("invoke printf, addr __new_line__");
             }else{
-                //agregar_instruccion("printf(\"%u\\n\", " + registro + ")");
                 agregar_instruccion("invoke printf, addr format, " + registro);
                 agregar_instruccion("invoke printf, addr __new_line__");
             }
         }
     }
 
-
-    /* 
-    public static void generarCodigoImpresion(String token){
-        String reg = registroPila.peek();
-        String registro = recuperar_registro();
-        Map<String, token> tablaSimbolos = parser.getTablaSimbolos();
-
-        if(tablaSimbolos.get(reg) != null){
-            if(tablaSimbolos.get(reg).getTipo().equals("single")){
-                reg = reg + "_single";
-            }else if(tablaSimbolos.get(reg).getTipo().equals("ulongint")){
-                reg = reg + "_ulongint";
-            }
-        }
-
-        if(tablaSimbolos.get(reg) != null){
-            if(tablaSimbolos.get(reg).getTipo().equals("multiline")){
-                agregar_instruccion("printf(\"" + registro + "\\n\")");
-                return;
-            }
-        }
-        if(es_registro(registro)){
-            agregar_instruccion("Mov aux_ulongint, " + registro);
-            agregar_instruccion("printf(\"%u\\n\", aux_ulongint)");
-        }else if(registro.equals("FLAG_fstp")){
-            agregar_instruccion("fstp result");
-            agregar_instruccion("printf(\"%f\\n\", result)");
-        }else if(data.get(registro) != null || float_values.get(reg) != null){
-            if(float_values.get(reg) != null || data.get(registro).getType().equals("REAL8") ){
-                agregar_instruccion("printf(\"%f\\n\", " + registro + ")"); 
-            }else{
-                agregar_instruccion("printf(\"%u\\n\", " + registro + ")");
-            }
-        }
-    }
-    */
     public static void generarCodigoAsignacion(){
         String reg2 = registroPila.peek();
         String registro2 = recuperar_registro();

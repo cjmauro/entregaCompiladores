@@ -1,7 +1,9 @@
 prog_simple
 begin
 	ulongint a;
-	
+	outf([hola1]);
+	outf([hola2]);
+        outf([hola3]);
 	single fun gsuma(ulongint i)
 		begin
 			single a;
